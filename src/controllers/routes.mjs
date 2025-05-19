@@ -1,5 +1,7 @@
-import Users from './users.mjs';
+import Albums from './Albums.mjs';
+import Photos from './Photos.mjs';
 
 export default {
-  Users
+  Albums,
+  Photos
 };

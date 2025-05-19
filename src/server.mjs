@@ -69,7 +69,8 @@ const Server = class Server {
   }
 
   routes() {
-    new routes.Users(this.app, this.connect);
+    new routes.Albums(this.app, this.connect);
+    new routes.Photos(this.app, this.connect);
 
     this.app.use((req, res) => {
       res.status(404).json({
@@ -90,7 +91,9 @@ const Server = class Server {
       this.security();
       this.middleware();
       this.routes();
-      this.app.listen(this.config.port);
+      this.app.listen(this.config.port, () => {
+        console.log(`[INFO] Server running on port ${this.config.port}`);
+      });
     } catch (err) {
       console.error(`[ERROR] Server -> ${err}`);
     }
