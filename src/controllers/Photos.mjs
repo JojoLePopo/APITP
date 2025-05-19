@@ -1,30 +1,156 @@
-import PhotoModel from '../models/Photo.mjs';
+import Photo from '../models/photo.mjs';
+import Album from '../models/Album.mjs';
 
 const Photos = class Photos {
   constructor(app, connect) {
     this.app = app;
-    this.PhotoModel = connect.model('Photo', PhotoModel);
+    this.PhotoModel = connect.model('Photo', Photo);
+    this.AlbumModel = connect.model('Album', Album);
     this.run();
   }
 
-  // Créer une nouvelle photo et l’associer à un album
-  create() {
-    this.app.post('/album/:idalbum/photo', async (req, res) => {
+  getall() {
+    this.app.get('/albums/:idalbum/photos', (req, res) => {
       try {
-        const { title, url } = req.body;
-        const albumId = req.params.idalbum;
-        const photo = new this.PhotoModel({ title, url, album: albumId });
-        const savedPhoto = await photo.save();
-        res.status(201).json(savedPhoto);
+        console.log('[DEBUG] albums/:idalbum/photos -> idalbum = ', req.params.idalbum);
+
+
+        this.PhotoModel.find({ album: req.params.idalbum })
+          .populate('album')
+          .then((photos) => {
+            res.status(200).json(photos || []);
+          })
+
+
+          .catch((err) => {
+            console.error(`[ERROR] albums/:idalbum/photos -> ${err}`);
+            res.status(500).json({
+              code: 500,
+              message: 'Internal Server error'
+            });
+          });
       } catch (err) {
-        console.error(`[ERROR] POST /album/:idalbum/photo -> ${err}`);
-        res.status(400).json({ code: 400, message: 'Bad Request' });
+
+
+        res.status(400).json({
+          code: 400,
+          message: 'Bad request'
+        });
+      }
+    });
+  }
+
+  getById() {
+
+    this.app.get('/albums/:idalbum/photo/:idphoto', (req, res) => {
+      try {
+        this.PhotoModel.findById(req.params.idphoto).populate('album').then((photo) => {
+          res.status(200).json(photo || {});
+        }).catch(() => {
+          res.status(500).json({
+            code: 500,
+            message: 'Internal Server error'
+          });
+        });
+      } catch (err) {
+        console.error(`[ERROR] albums/:idalbum/photo/:idphoto -> ${err}`);
+
+        res.status(400).json({
+          code: 400,
+          message: 'Bad requests'
+        });
+      }
+    });
+  }
+
+  add() {
+    this.app.post('/albums/:idalbum/photo', (req, res) => {
+      try {
+        const photoData = {
+          ...req.body,
+          album: req.params.idalbum
+        };
+        const photoModel = new this.PhotoModel(photoData);
+        photoModel.save()
+          .then((savedPhoto) => this.AlbumModel.findByIdAndUpdate(
+            req.params.idalbum,
+            { $push: { photos: savedPhoto._id } },
+            { new: true }
+          ))
+          .then((updatedAlbum) => {
+            res.status(201).json(updatedAlbum || {});
+          })
+          .catch(() => {
+            res.status(500).json({
+              code: 500,
+              message: 'Internal Server errors'
+            });
+          });
+      } catch (err) {
+        console.error(`[ERROR] albums/:idalbum/photo -> ${err}`);
+
+        res.status(400).json({
+          code: 400,
+          message: 'Bad requests'
+        });
+      }
+    });
+  }
+
+  updateById() {
+    this.app.put('/album/:idalbum/photo/:idphoto', (req, res) => {
+      try {
+        this.PhotoModel.findByIdAndUpdate(
+          req.params.idphoto,
+          req.body,
+          { new: true }
+        ).then((photo) => {
+          res.status(200).json(photo || {});
+        }).catch(() => {
+          res.status(500).json({
+            code: 500,
+            message: 'Internal Server error'
+          });
+        });
+      } catch (err) {
+        console.error(`[ERROR] albums/:idalbum/photo/:idphoto -> ${err}`);
+
+        res.status(400).json({
+          code: 400,
+          message: 'Bad request'
+        });
+      }
+    });
+  }
+
+  deleteById() {
+    this.app.delete('/albums/:idalbum/photo/:idphoto', (req, res) => {
+      try {
+        this.PhotoModel.findByIdAndDelete(req.params.idphoto).then((photo) => {
+          res.status(200).json(photo || {});
+        }).catch(() => {
+          res.status(500).json({
+            code: 500,
+            message: 'Internal Server error'
+          });
+        });
+      } catch (err) {
+        console.error(`[ERROR] albums/:idalbum/photo/:idphoto -> ${err}`);
+
+        res.status(400).json({
+          code: 400,
+          message: 'Bad request'
+        });
       }
     });
   }
 
   run() {
-    this.create();
+    this.getall();
+    this.getById();
+    this.add();
+    this.updateById();
+    this.deleteById();
   }
 };
 
