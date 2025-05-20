@@ -8,7 +8,7 @@ import helmet from 'helmet';
 
 // Core
 import config from './config.mjs';
-import routes from './controllers/routes.mjs';
+import Routes from './controllers/routes.mjs';
 
 const Server = class Server {
   constructor() {
@@ -19,45 +19,33 @@ const Server = class Server {
   async dbConnect() {
     try {
       const host = this.config.mongodb;
-
       this.connect = await mongoose.createConnection(host, {
         useNewUrlParser: true,
         useUnifiedTopology: true
       });
 
-      const close = () => {
-        this.connect.close((error) => {
-          if (error) {
-            console.error('[ERROR] api dbConnect() close() -> mongodb error', error);
-          } else {
-            console.log('[CLOSE] api dbConnect() -> mongodb closed');
-          }
-        });
-      };
-
       this.connect.on('error', (err) => {
         setTimeout(() => {
-          console.log('[ERROR] api dbConnect() -> mongodb error');
+          console.error('[ERROR] MongoDB error', err);
           this.connect = this.dbConnect(host);
         }, 5000);
-
-        console.error(`[ERROR] api dbConnect() -> ${err}`);
       });
 
       this.connect.on('disconnected', () => {
         setTimeout(() => {
-          console.log('[DISCONNECTED] api dbConnect() -> mongodb disconnected');
+          console.warn('[DISCONNECTED] MongoDB disconnected');
           this.connect = this.dbConnect(host);
         }, 5000);
       });
 
       process.on('SIGINT', () => {
-        close();
-        console.log('[API END PROCESS] api dbConnect() -> close mongodb connection');
-        process.exit(0);
+        this.connect.close(() => {
+          console.log('[CLOSE] MongoDB connection closed');
+          process.exit(0);
+        });
       });
     } catch (err) {
-      console.error(`[ERROR] api dbConnect() -> ${err}`);
+      console.error(`[ERROR] dbConnect() -> ${err}`);
     }
   }
 
@@ -69,8 +57,7 @@ const Server = class Server {
   }
 
   routes() {
-    new routes.Albums(this.app, this.connect);
-    new routes.Photos(this.app, this.connect);
+    new Routes(this.app, this.connect);
 
     this.app.use((req, res) => {
       res.status(404).json({
@@ -84,13 +71,31 @@ const Server = class Server {
     this.app.use(helmet());
     this.app.disable('x-powered-by');
   }
-
+  AuthToken(req, res, next) {
+    const token = req.headers.authorization;
+    if (!token) {
+      return res.status(403).json({
+        code: 403,
+        message: 'Forbidden: Token manquant'
+      });
+    }
+    return jwt.verify(token, 'test', (err) => {
+      if (err) {
+        return res.status(401).json({
+          code: 401,
+          message: 'Token invalide'
+        });
+      }
+      return next();
+    });
+  }
+ 
   async run() {
     try {
       await this.dbConnect();
-      this.security();
-      this.middleware();
-      this.routes();
+      this.security();    
+      this.middleware();  
+      this.routes();       
       this.app.listen(this.config.port, () => {
         console.log(`[INFO] Server running on port ${this.config.port}`);
       });

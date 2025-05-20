@@ -1,7 +1,8 @@
 import AlbumModel from '../models/Album.mjs';
 
 const Albums = class Albums {
-  constructor(app, connect) {
+  constructor(app, connect, AuthToken) {
+    this.AuthToken = AuthToken;
     this.app = app;
     this.AlbumModel = connect.model('Album', AlbumModel);
 
@@ -10,7 +11,7 @@ const Albums = class Albums {
 
   
   getById() {
-    this.app.get('/album/:id', (req, res) => {
+    this.app.get('/album/:id', This.AuthToken, (req, res) => {
       try {
         this.AlbumModel.findById(req.params.id).then((album) => {
           res.status(200).json(album || {});
@@ -34,7 +35,7 @@ const Albums = class Albums {
 
 
   create() {
-    this.app.post('/album', (req, res) => {
+    this.app.post('/album', This.AuthToken, (req, res) => {
       try {
         const albumModel = new this.AlbumModel(req.body);
 
@@ -58,7 +59,7 @@ const Albums = class Albums {
 
 
   updateById() {
-    this.app.put('/album/:id', (req, res) => {
+    this.app.put('/album/:id', This.AuthToken,(req, res) => {
       try {
         this.AlbumModel.findByIdAndUpdate(req.params.id, req.body, { new: true }).then((album) => {
           res.status(200).json(album || {});
@@ -82,7 +83,7 @@ const Albums = class Albums {
 
 
   deleteById() {
-    this.app.delete('/album/:id', (req, res) => {
+    this.app.delete('/album/:id', This.AuthToken,(req, res) => {
       try {
         this.AlbumModel.findByIdAndDelete(req.params.id).then((album) => {
           res.status(200).json(album || {});
@@ -104,7 +105,7 @@ const Albums = class Albums {
   }
 
   getAll() {
-    this.app.get('/albums', (req, res) => {
+    this.app.get('/albums', This.AuthToken,(req, res) => {
       try {
         const filter = req.query.name ? { name: req.query.name } : {};
         this.AlbumModel.find(filter).then((albums) => {

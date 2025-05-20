@@ -2,8 +2,9 @@ import PhotoModel from '../models/photo.mjs';
 import AlbumModel from '../models/Album.mjs';
 
 const Photos = class Photos {
-  constructor(app, connect) {
+  constructor(app, connec, AuthTokent) {
     this.app = app;
+    this.AuthToken = AuthTokent;
     this.PhotoModel = connect.model('Photo', PhotoModel);
     this.AlbumModel = connect.model('Album', AlbumModel);
 
@@ -11,7 +12,7 @@ const Photos = class Photos {
   }
 
   getAllPhotos() {
-    this.app.get('/album/:idalbum/photos', (req, res) => {
+    this.app.get('/album/:idalbum/photos', This.AuthToken, (req, res) => {
       try {
         this.PhotoModel.find({ album: req.params.idalbum }).populate('album').then((photos) => {
           res.status(200).json(photos || []);
@@ -34,7 +35,7 @@ const Photos = class Photos {
 
 
   getPhotoById() {
-    this.app.get('/album/:idalbum/photo/:idphotos', (req, res) => {
+    this.app.get('/album/:idalbum/photo/:idphotos', This.AuthToken, (req, res) => {
       try {
         this.PhotoModel.findOne({
           album: req.params.idalbum,
@@ -60,7 +61,7 @@ const Photos = class Photos {
 
 
   createPhoto() {
-    this.app.post('/album/:idalbum/photo', (req, res) => {
+    this.app.post('/album/:idalbum/photo', This.AuthToken, (req, res) => {
       try {
         const photoModel = new this.PhotoModel({ ...req.body, album: req.params.idalbum });
 
@@ -93,7 +94,7 @@ const Photos = class Photos {
 
 
   updatePhoto() {
-    this.app.put('/album/:idalbum/photo/:idphotos', (req, res) => {
+    this.app.put('/album/:idalbum/photo/:idphotos', This.AuthToken, (req, res) => {
       try {
         this.PhotoModel.findOneAndUpdate(
           { album: req.params.idalbum, _id: req.params.idphotos },
@@ -120,7 +121,7 @@ const Photos = class Photos {
 
 
   deletePhoto() {
-    this.app.delete('/album/:idalbum/photo/:idphotos', (req, res) => {
+    this.app.delete('/album/:idalbum/photo/:idphotos', This.AuthToken, (req, res) => {
       try {
         this.PhotoModel.findOneAndDelete({
           album: req.params.idalbum,
