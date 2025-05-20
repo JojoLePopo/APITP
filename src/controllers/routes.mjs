@@ -13,6 +13,7 @@ class Routes {
     new Albums(app, db, authMiddleware);
     new Photos(app, db, authMiddleware);
     new Users(app, db, authMiddleware);
+    new Pipeline(app, db, authMiddleware);
   }
 }
 
